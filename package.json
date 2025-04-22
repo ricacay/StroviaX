@@ -12,7 +12,9 @@
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.17.0",
-    "xumm-oauth2-pkce": "^2.8.7"
+    "sonner": "^2.0.3",
+    "xumm-oauth2-pkce": "^2.8.7",
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.1.0",

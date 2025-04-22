@@ -1,9 +1,14 @@
 // src/hooks/useXamanAuth.js
+
 import { useEffect, useState } from 'react';
 import { XummPkce } from 'xumm-oauth2-pkce';
 
 const apiKey = import.meta.env.VITE_XUMM_API_KEY;
 console.log("✅ [useXamanAuth] API Key Loaded:", apiKey);
+
+if (!apiKey) {
+  console.error("❌ [useXamanAuth] XUMM API Key is undefined! Check your .env file and restart the dev server.");
+}
 
 const xumm = new XummPkce(apiKey);
 
@@ -11,51 +16,39 @@ export default function useXamanAuth() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    if (!apiKey) {
-      console.error("❌ [useXamanAuth] Missing XUMM API Key!");
-      return;
-    }
+    console.warn("🧪 [useXamanAuth] xumm event listeners disabled for debugging.");
 
-    let unsubscribeSuccess, unsubscribeLogout;
+    // Temporarily disabling success and logout event listeners to test white screen issue
+    /*
+    xumm.on('success', async () => {
+      console.log("✅ [useXamanAuth] Login success event received.");
 
-    xumm.on("ready", async () => {
-      console.log("✅ [useXamanAuth] Xumm SDK ready.");
+      try {
+        const maybeState = await xumm.state();
+        console.log("📦 [useXamanAuth] Post-login state:", maybeState);
 
-      unsubscribeSuccess = xumm.on("success", async () => {
-        console.log("✅ [useXamanAuth] Login success.");
-
-        try {
-          const state = await xumm.state();
-          console.log("📦 [useXamanAuth] State:", state);
-
-          if (state?.me?.sub) {
-            setUser({
-              wallet: state.me.sub,
-              name: state.me.name || "XRP User",
-            });
-          } else {
-            console.warn("⚠️ [useXamanAuth] No user info in state.");
-          }
-        } catch (err) {
-          console.error("❌ [useXamanAuth] xumm.state() failed:", err);
+        if (maybeState && maybeState.me) {
+          setUser({
+            wallet: maybeState.me.sub,
+            name: maybeState.me.name || 'XRP User',
+          });
+        } else {
+          console.warn("⚠️ [useXamanAuth] Post-login state missing `me` field.");
         }
-      });
-
-      unsubscribeLogout = xumm.on("logout", () => {
-        console.log("👋 [useXamanAuth] Logged out.");
-        setUser(null);
-      });
+      } catch (err) {
+        console.error("❌ [useXamanAuth] Error during post-login xumm.state() call:", err);
+      }
     });
 
-    return () => {
-      // Clean up event listeners
-      unsubscribeSuccess?.();
-      unsubscribeLogout?.();
-    };
+    xumm.on('logout', () => {
+      console.log("👋 [useXamanAuth] Logout detected.");
+      setUser(null);
+    });
+    */
   }, []);
 
   const login = () => {
-    console.log("🚀 [useXamanAuth] Logging in...");
+    console.log("🚀 [useXamanAuth] Initiating login...");
     xumm.authorize();
   };
 
