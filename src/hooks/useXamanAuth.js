@@ -1,61 +1,87 @@
 // src/hooks/useXamanAuth.js
 
-import { useEffect, useState } from 'react';
-import { XummPkce } from 'xumm-oauth2-pkce';
+import { useEffect, useState } from 'react'
+import { XummPkce } from 'xumm-oauth2-pkce'
 
-const apiKey = import.meta.env.VITE_XUMM_API_KEY;
-console.log("✅ [useXamanAuth] API Key Loaded:", apiKey);
+const apiKey = import.meta.env.VITE_XUMM_API_KEY
+let xumm = null
 
-if (!apiKey) {
-  console.error("❌ [useXamanAuth] XUMM API Key is undefined! Check your .env file and restart the dev server.");
+if (apiKey) {
+  try {
+    xumm = new XummPkce(apiKey)
+  } catch (err) {
+    console.error('❌ Xumm initialization failed:', err)
+  }
+} else {
+  console.error('❌ Missing VITE_XUMM_API_KEY in .env')
 }
 
-const xumm = new XummPkce(apiKey);
-
 export default function useXamanAuth() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
-    console.warn("🧪 [useXamanAuth] xumm event listeners disabled for debugging.");
+    if (!xumm || typeof xumm.on !== 'function') {
+      console.warn('🚫 Xumm is not properly initialized.')
+      return
+    }
 
-    // Temporarily disabling success and logout event listeners to test white screen issue
-    /*
-    xumm.on('success', async () => {
-      console.log("✅ [useXamanAuth] Login success event received.");
-
+    const handleSuccess = async () => {
       try {
-        const maybeState = await xumm.state();
-        console.log("📦 [useXamanAuth] Post-login state:", maybeState);
-
-        if (maybeState && maybeState.me) {
+        const state = await xumm.state?.()
+        if (state?.me?.sub) {
           setUser({
-            wallet: maybeState.me.sub,
-            name: maybeState.me.name || 'XRP User',
-          });
-        } else {
-          console.warn("⚠️ [useXamanAuth] Post-login state missing `me` field.");
+            wallet: state.me.sub,
+            name: state.me.name || 'XRP User',
+          })
         }
       } catch (err) {
-        console.error("❌ [useXamanAuth] Error during post-login xumm.state() call:", err);
+        console.error('❌ Error fetching xumm state in success handler:', err)
       }
-    });
+    }
 
-    xumm.on('logout', () => {
-      console.log("👋 [useXamanAuth] Logout detected.");
-      setUser(null);
-    });
-    */
-  }, []);
+    const handleLogout = () => setUser(null)
+
+    try {
+      xumm.on('success', handleSuccess)
+      xumm.on('logout', handleLogout)
+
+      // Check session on mount
+      xumm.state?.().then((state) => {
+        if (state?.me?.sub) {
+          setUser({
+            wallet: state.me.sub,
+            name: state.me.name || 'XRP User',
+          })
+        }
+      }).catch(err => {
+        console.warn('⚠️ Silent fail during initial state check:', err)
+      })
+
+    } catch (err) {
+      console.error('❌ Listener setup failed:', err)
+    }
+
+    return () => {
+      try {
+        xumm?.removeAllListeners?.()
+      } catch (err) {
+        console.warn('⚠️ Failed to remove listeners:', err)
+      }
+    }
+  }, [])
 
   const login = () => {
-    console.log("🚀 [useXamanAuth] Initiating login...");
-    xumm.authorize();
-  };
+    if (!xumm || typeof xumm.authorize !== 'function') {
+      console.error('❌ Cannot authorize — xumm not available')
+      return
+    }
+    xumm.authorize()
+  }
 
   const logout = () => {
-    console.log("🔒 [useXamanAuth] Logging out...");
-    xumm.logout();
-  };
+    if (!xumm) return
+    xumm.logout()
+  }
 
-  return { user, login, logout };
+  return { user, login, logout, xumm }
 }
