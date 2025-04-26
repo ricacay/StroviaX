@@ -6,10 +6,14 @@ import logo from '../assets/stroviax-logo.svg';
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { isConnected, xrpAddress, login, logout, loading } = useXamanAuth();
+  const { isConnected, xrpAddress, logout } = useXamanAuth(); // Removed login and loading
   const { enabled, toggle } = useDarkMode();
 
   const handleClick = () => navigate('/');
+
+  const handleConnectWallet = () => {
+    window.location.href = 'http://localhost:4000/auth';
+  };
 
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-md bg-background/70 border-b border-border transition-colors duration-500">
@@ -60,36 +64,10 @@ export default function Navbar() {
             </>
           ) : (
             <button
-              onClick={login}
+              onClick={handleConnectWallet}
               className="bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white px-4 py-2 rounded hover:opacity-90 flex items-center transition-all"
             >
-              {loading ? (
-                <>
-                  <svg
-                    className="animate-spin h-4 w-4 mr-2 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                  Connecting...
-                </>
-              ) : (
-                'Connect Wallet'
-              )}
+              Connect Wallet
             </button>
           )}
         </div>

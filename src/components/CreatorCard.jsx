@@ -4,22 +4,23 @@ import useXamanAuth from '../hooks/useXamanAuth';
 import { toast } from 'sonner';
 
 export default function CreatorCard({ creator }) {
-  const { isConnected, xrpAddress, xumm } = useXamanAuth(); // ✅ now includes xumm
+  const { isConnected, xrpAddress } = useXamanAuth();
 
   const [tipAmount, setTipAmount] = useState('5'); // Default 5 XRP
   const [tipHistory, setTipHistory] = useState([]);
 
   const handleTipClick = async () => {
-    if (!isConnected) {
-      toast.error('Please connect your wallet first.');
-      return;
-    }
+    // Commented out for testing tipping without wallet connection
+    // if (!isConnected) {
+    //   toast.error('Please connect your wallet first.');
+    //   return;
+    // }
 
     const drops = (parseFloat(tipAmount) * 1000000).toString();
     const toastId = toast.loading('Sending tip...');
 
     try {
-      await submitTip(xumm, creator.walletAddress, drops, `Tip for ${creator.name}`);
+      await submitTip('rMLZzjky2V5XkqMBhGGomakbNXH74k5hfv', drops, `Tip for Sasha Music`);
       toast.success('✅ Tip Sent! Thank you!', { id: toastId });
 
       const timestamp = new Date().toLocaleString();
