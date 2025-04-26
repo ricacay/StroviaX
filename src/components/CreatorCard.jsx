@@ -1,43 +1,37 @@
-// src/components/CreatorCard.jsx
-
-import React, { useState } from 'react'
-import { submitTip } from '../utils/submitTip'
-import useXamanAuth from '../hooks/useXamanAuth'
+import React, { useState } from 'react';
+import { submitTip } from '../utils/submitTip';
+import useXamanAuth from '../hooks/useXamanAuth';
+import { toast } from 'sonner';
 
 export default function CreatorCard({ creator }) {
-  const { user, xumm, login } = useXamanAuth()
+  const { isConnected, xrpAddress, xumm } = useXamanAuth(); // ✅ now includes xumm
 
-  const [tipAmount, setTipAmount] = useState('5') // Default 5 XRP
-  const [tipStatus, setTipStatus] = useState(null)
-  const [tipHistory, setTipHistory] = useState([])
+  const [tipAmount, setTipAmount] = useState('5'); // Default 5 XRP
+  const [tipHistory, setTipHistory] = useState([]);
 
   const handleTipClick = async () => {
-    if (!user) {
-      login()
-      return
+    if (!isConnected) {
+      toast.error('Please connect your wallet first.');
+      return;
     }
 
-    const drops = (parseFloat(tipAmount) * 1000000).toString()
+    const drops = (parseFloat(tipAmount) * 1000000).toString();
+    const toastId = toast.loading('Sending tip...');
 
     try {
-      setTipStatus('Sending...')
-      await submitTip(xumm, creator.walletAddress, drops, `Tip for ${creator.name}`)
-      setTipStatus('✅ Tip Sent!')
+      await submitTip(xumm, creator.walletAddress, drops, `Tip for ${creator.name}`);
+      toast.success('✅ Tip Sent! Thank you!', { id: toastId });
 
-      // Save to tip history
-      const timestamp = new Date().toLocaleString()
+      const timestamp = new Date().toLocaleString();
       setTipHistory(prev => [
         { amount: tipAmount, timestamp },
         ...prev.slice(0, 4) // Limit to last 5
-      ])
+      ]);
     } catch (err) {
-      console.error('❌ Tip failed:', err)
-      setTipStatus('❌ Tip failed')
+      toast.error('❌ Tip failed or cancelled.', { id: toastId });
+      console.error('Tip error:', err);
     }
-
-    // Clear status after a few seconds
-    setTimeout(() => setTipStatus(null), 5000)
-  }
+  };
 
   return (
     <div className="bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition p-4 flex flex-col space-y-3">
@@ -72,9 +66,6 @@ export default function CreatorCard({ creator }) {
         💸 Send Tip
       </button>
 
-      {/* Tip Status */}
-      {tipStatus && <p className="text-sm text-center font-medium">{tipStatus}</p>}
-
       {/* Tip History */}
       {tipHistory.length > 0 && (
         <div className="mt-2 text-xs text-gray-600">
@@ -89,5 +80,5 @@ export default function CreatorCard({ creator }) {
         </div>
       )}
     </div>
-  )
+  );
 }

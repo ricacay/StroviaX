@@ -1,3 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+  @apply bg-background text-foreground font-sans;
+}
+
+.dark html {
+  @apply bg-background-dark text-foreground-dark;
+}
+
+body {
+  @apply transition-colors duration-500;
+}

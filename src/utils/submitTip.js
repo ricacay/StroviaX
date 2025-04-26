@@ -1,46 +1,42 @@
-// src/utils/submitTip.js
-
-/**
- * Submit a tip using the active XUMM session
- * @param {Object} xumm - XummPkce instance from useXamanAuth
- * @param {string} destinationAccount - Creator's XRP wallet address
- * @param {string} amount - Amount in drops (1 XRP = 1,000,000 drops)
- * @param {string} memo - Optional message/memo
- * @returns {Promise<void>}
- */
-export async function submitTip(xumm, destinationAccount, amount, memo = '') {
+export async function submitTip(xumm, destinationAccount, amountInDrops, memo = '') {
   try {
     const payload = {
-      txjson: {
-        TransactionType: 'Payment',
-        Destination: destinationAccount,
-        Amount: amount.toString(),
-        Memos: memo
-          ? [
-              {
-                Memo: {
-                  MemoData: Buffer.from(memo, 'utf8').toString('hex'),
-                },
+      TransactionType: 'Payment',
+      Destination: destinationAccount,
+      Amount: amountInDrops,
+      Memos: memo
+        ? [
+            {
+              Memo: {
+                MemoData: [...new TextEncoder().encode(memo)]
+                  .map(b => b.toString(16).padStart(2, '0'))
+                  .join('')
+                  .toUpperCase(),
               },
-            ]
-          : undefined,
-      },
-    }
+            },
+          ]
+        : undefined,
+    };
 
-    const { created } = await xumm.payload.createAndSubscribe(payload, (event) => {
+    // Await result, store it before destructuring
+    const result = await xumm.payload?.createAndSubscribe(payload, (event) => {
       if (event.data.signed === true) {
-        console.log('✅ Transaction signed by user.')
+        console.log('✅ Transaction signed by user.');
+        return event.data;
       } else if (event.data.signed === false) {
-        console.warn('❌ User declined the transaction.')
+        console.warn('❌ User declined the transaction.');
+        throw new Error('User declined signing.');
       }
-    })
+    });
 
-    if (created?.next?.always) {
-      // Open sign request in new tab
-      window.open(created.next.always, '_blank')
+    // Now check result before destructuring
+    if (!result || !result.resolved?.signed) {
+      throw new Error('User did not complete signing.');
     }
+
+    console.log('✅ Tip successfully submitted.');
   } catch (error) {
-    console.error('❌ Error submitting tip:', error)
-    throw error
+    console.error('❌ Error submitting tip:', error);
+    throw error;
   }
 }

@@ -1,87 +1,68 @@
-// src/hooks/useXamanAuth.js
+import { useEffect, useState } from 'react';
+import { XummPkce } from 'xumm-oauth2-pkce';
 
-import { useEffect, useState } from 'react'
-import { XummPkce } from 'xumm-oauth2-pkce'
-
-const apiKey = import.meta.env.VITE_XUMM_API_KEY
-let xumm = null
-
-if (apiKey) {
-  try {
-    xumm = new XummPkce(apiKey)
-  } catch (err) {
-    console.error('❌ Xumm initialization failed:', err)
-  }
-} else {
-  console.error('❌ Missing VITE_XUMM_API_KEY in .env')
-}
+// 🔄 Dynamic instance (regenerates fresh if needed)
+let xumm = null;
 
 export default function useXamanAuth() {
-  const [user, setUser] = useState(null)
+  const [isConnected, setIsConnected] = useState(false);
+  const [xrpAddress, setXrpAddress] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const initXumm = () => {
+    xumm = new XummPkce(import.meta.env.VITE_XUMM_API_KEY);
+
+    xumm.on('success', async () => {
+      const state = await xumm.state();
+      if (state?.me?.account) {
+        setIsConnected(true);
+        setXrpAddress(state.me.account);
+        console.log('✅ Wallet connected:', state.me.account);
+      }
+    });
+  };
 
   useEffect(() => {
-    if (!xumm || typeof xumm.on !== 'function') {
-      console.warn('🚫 Xumm is not properly initialized.')
-      return
-    }
-
-    const handleSuccess = async () => {
-      try {
-        const state = await xumm.state?.()
-        if (state?.me?.sub) {
-          setUser({
-            wallet: state.me.sub,
-            name: state.me.name || 'XRP User',
-          })
-        }
-      } catch (err) {
-        console.error('❌ Error fetching xumm state in success handler:', err)
-      }
-    }
-
-    const handleLogout = () => setUser(null)
-
-    try {
-      xumm.on('success', handleSuccess)
-      xumm.on('logout', handleLogout)
-
-      // Check session on mount
-      xumm.state?.().then((state) => {
-        if (state?.me?.sub) {
-          setUser({
-            wallet: state.me.sub,
-            name: state.me.name || 'XRP User',
-          })
-        }
-      }).catch(err => {
-        console.warn('⚠️ Silent fail during initial state check:', err)
-      })
-
-    } catch (err) {
-      console.error('❌ Listener setup failed:', err)
-    }
-
+    initXumm(); // Initialize fresh Xumm instance
     return () => {
-      try {
-        xumm?.removeAllListeners?.()
-      } catch (err) {
-        console.warn('⚠️ Failed to remove listeners:', err)
-      }
-    }
-  }, [])
+      xumm = null;
+    };
+  }, []);
 
-  const login = () => {
-    if (!xumm || typeof xumm.authorize !== 'function') {
-      console.error('❌ Cannot authorize — xumm not available')
-      return
+  const login = async () => {
+    try {
+      initXumm(); // Make sure we have a fresh instance
+      await xumm.logout(); // Always clear session before new login
+
+      const isDev = import.meta.env.DEV; // 🚀 Detect if running in development
+      await xumm.authorize({ force: isDev }); // Force popup only in dev mode
+    } catch (err) {
+      if (err?.message?.includes('window closed')) {
+        console.warn('🛑 Xumm login window was closed by user.');
+      } else {
+        console.error('❌ Login error:', err);
+      }
+    } finally {
+      setLoading(false);
     }
-    xumm.authorize()
-  }
+  };
 
   const logout = () => {
-    if (!xumm) return
-    xumm.logout()
-  }
+    if (xumm) {
+      xumm.logout();
+    }
+    setIsConnected(false);
+    setXrpAddress('');
+    xumm = null;
+    window.location.reload(); // Refresh page to fully reset
+  };
 
-  return { user, login, logout, xumm }
+  return {
+    isConnected,
+    xrpAddress,
+    loading,
+    login,
+    logout,
+    xumm,
+  };
 }
