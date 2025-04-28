@@ -1,19 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import useXamanAuth from '../hooks/useXamanAuth';
-import useDarkMode from '../hooks/useDarkMode';
+import DarkModeToggle from './DarkModeToggle';
 import logo from '../assets/stroviax-logo.svg';
+import useXamanAuth from '../hooks/useXamanAuth'; // <-- You forgot this import!
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { isConnected, xrpAddress, logout } = useXamanAuth(); // Removed login and loading
-  const { enabled, toggle } = useDarkMode();
+  const { isConnected, xrpAddress, login, logout, loading } = useXamanAuth(); // <-- Pull your real wallet state
 
   const handleClick = () => navigate('/');
-
-  const handleConnectWallet = () => {
-    window.location.href = 'http://localhost:4000/auth';
-  };
 
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-md bg-background/70 border-b border-border transition-colors duration-500">
@@ -28,46 +23,36 @@ export default function Navbar() {
 
         {/* Nav Links + Controls */}
         <div className="flex items-center space-x-6">
-          <a
-            href="/"
-            className="text-lg font-medium hover:text-purple-600 dark:text-white dark:hover:text-purple-300 transition-colors"
-          >
+          <a href="/" className="text-lg font-medium hover:text-purple-600 dark:text-white dark:hover:text-purple-300 transition-colors">
             Home
           </a>
-          <a
-            href="/about"
-            className="text-lg font-medium hover:text-purple-600 dark:text-white dark:hover:text-purple-300 transition-colors"
-          >
+          <a href="/about" className="text-lg font-medium hover:text-purple-600 dark:text-white dark:hover:text-purple-300 transition-colors">
             About
           </a>
 
           {/* Dark Mode Toggle */}
-          <button
-            onClick={toggle}
-            className="text-sm px-3 py-1 rounded-full border dark:border-white border-gray-500 text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
-          >
-            {enabled ? '🌙 Dark' : '☀️ Light'}
-          </button>
+          <DarkModeToggle />
 
-          {/* Wallet Connect/Disconnect */}
+          {/* Wallet Connect Button */}
           {isConnected ? (
-            <>
-              <span className="text-sm font-mono text-yellow-600 dark:text-yellow-400">
-                Connected: {xrpAddress.slice(0, 6)}...{xrpAddress.slice(-4)}
-              </span>
+            <div className="flex items-center space-x-2">
+              <div className="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold">
+                {xrpAddress.slice(0, 6)}...{xrpAddress.slice(-4)}
+              </div>
               <button
                 onClick={logout}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-all"
+                className="bg-red-500 text-white px-3 py-2 rounded hover:opacity-90 transition-all"
               >
                 Disconnect
               </button>
-            </>
+            </div>
           ) : (
             <button
-              onClick={handleConnectWallet}
+              onClick={login}
               className="bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white px-4 py-2 rounded hover:opacity-90 flex items-center transition-all"
+              disabled={loading}
             >
-              Connect Wallet
+              {loading ? 'Connecting...' : 'Connect Wallet'}
             </button>
           )}
         </div>

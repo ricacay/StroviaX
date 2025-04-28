@@ -4,7 +4,7 @@ import Navbar from './components/Navbar';
 
 function App() {
   return (
-    <div className="min-h-screen transition-colors duration-500 bg-background text-foreground">
+    <div className="min-h-screen transition-all duration-700 ease-in-out bg-background text-foreground dark:bg-background-dark dark:text-foreground-dark">
       <Toaster
         richColors
         position="top-center"

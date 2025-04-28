@@ -1,3 +1,4 @@
+// src/hooks/useXamanAuth.js
 import { useEffect, useState } from 'react';
 import { XummPkce } from 'xumm-oauth2-pkce';
 
@@ -7,7 +8,7 @@ let xumm = null;
 export default function useXamanAuth() {
   const [isConnected, setIsConnected] = useState(false);
   const [xrpAddress, setXrpAddress] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // <--- CHANGED default from true ➔ false
 
   const initXumm = () => {
     xumm = new XummPkce(import.meta.env.VITE_XUMM_API_KEY);
@@ -19,6 +20,7 @@ export default function useXamanAuth() {
         setXrpAddress(state.me.account);
         console.log('✅ Wallet connected:', state.me.account);
       }
+      setLoading(false); // <--- STOP loading when successful
     });
   };
 
@@ -31,11 +33,12 @@ export default function useXamanAuth() {
 
   const login = async () => {
     try {
-      initXumm(); // Make sure we have a fresh instance
-      await xumm.logout(); // Always clear session before new login
+      setLoading(true); // <--- Only set loading true when actually logging in
+      initXumm(); // Fresh instance
+      await xumm.logout(); // Always clear session first
 
-      const isDev = import.meta.env.DEV; // 🚀 Detect if running in development
-      await xumm.authorize({ force: isDev }); // Force popup only in dev mode
+      const isDev = import.meta.env.DEV; // Detect dev environment
+      await xumm.authorize({ force: isDev }); // Force popup in dev
     } catch (err) {
       if (err?.message?.includes('window closed')) {
         console.warn('🛑 Xumm login window was closed by user.');
@@ -43,7 +46,7 @@ export default function useXamanAuth() {
         console.error('❌ Login error:', err);
       }
     } finally {
-      setLoading(false);
+      setLoading(false); // Always clear loading
     }
   };
 

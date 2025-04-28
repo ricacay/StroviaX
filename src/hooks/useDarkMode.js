@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 
 export default function useDarkMode() {
   const [enabled, setEnabled] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme) {
+      return storedTheme === 'dark';
+    }
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark;
   });
 
   useEffect(() => {
