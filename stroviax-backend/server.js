@@ -1,38 +1,33 @@
+// stroviax-backend/server.js
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import mongoose from 'mongoose';
 import { XummSdk } from 'xumm-sdk';
+import connectDB from './connectDB.js'; // 👈 Import the DB connection module
 import Tip from './models/tipModel.js'; // import the Tip model
 
-// Load environment variables
+// Load env vars
 dotenv.config();
 
-// Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('✅ Connected to MongoDB Atlas'))
-.catch((err) => console.error('❌ MongoDB connection error:', err));
+// Connect to MongoDB
+connectDB(); // 👈 Connect here
 
-// Initialize Express app
+// Initialize Express
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize Xumm SDK
+// Initialize Xumm
 const xumm = new XummSdk(
   process.env.VITE_XUMM_API_KEY,
   process.env.VITE_XUMM_API_SECRET
 );
 
-// Health check
+// Routes
 app.get('/', (req, res) => {
   res.send('✅ StroviaX Backend Server is running');
 });
 
-// Create XRP tip payload (via Xumm)
 app.post('/create-tip-payload', async (req, res) => {
   try {
     const { destination, amount, memo } = req.body;
@@ -68,15 +63,12 @@ app.post('/create-tip-payload', async (req, res) => {
   }
 });
 
-// Xumm OAuth2 login
 app.get('/auth', (req, res) => {
   try {
     const clientId = process.env.VITE_XUMM_API_KEY;
     const redirectUri = encodeURIComponent('http://localhost:5173/');
-    const scope = 'Identity';
-    const responseType = 'code';
+    const authUrl = `https://oauth2.xumm.app/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=Identity`;
 
-    const authUrl = `https://oauth2.xumm.app/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}`;
     res.json({ authUrl });
   } catch (error) {
     console.error('Auth route error:', error);
@@ -84,7 +76,6 @@ app.get('/auth', (req, res) => {
   }
 });
 
-// OAuth2 callback
 app.get('/callback', async (req, res) => {
   const { code } = req.query;
 
@@ -100,7 +91,6 @@ app.get('/callback', async (req, res) => {
   }
 });
 
-// ✅ Save tip to MongoDB
 app.post('/api/tip', async (req, res) => {
   const { sender, recipient, amount, memo, timestamp } = req.body;
 
@@ -119,7 +109,6 @@ app.post('/api/tip', async (req, res) => {
   }
 });
 
-// Optional: Get all tips
 app.get('/api/tips', async (req, res) => {
   try {
     const tips = await Tip.find().sort({ timestamp: -1 }).limit(50);
@@ -129,7 +118,7 @@ app.get('/api/tips', async (req, res) => {
   }
 });
 
-// Start server
+// Start the server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`🚀 StroviaX Backend Server running at http://localhost:${PORT}`);
