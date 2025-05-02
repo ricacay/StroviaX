@@ -1,10 +1,20 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 import { XummSdk } from 'xumm-sdk';
+import Tip from './models/tipModel.js'; // import the Tip model
 
 // Load environment variables
 dotenv.config();
+
+// Connect to MongoDB Atlas
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('✅ Connected to MongoDB Atlas'))
+.catch((err) => console.error('❌ MongoDB connection error:', err));
 
 // Initialize Express app
 const app = express();
@@ -17,12 +27,12 @@ const xumm = new XummSdk(
   process.env.VITE_XUMM_API_SECRET
 );
 
-// Health check route
+// Health check
 app.get('/', (req, res) => {
-  res.send('StroviaX Backend Server Running ✅');
+  res.send('✅ StroviaX Backend Server is running');
 });
 
-// Tip payload creation route (send XRP tips)
+// Create XRP tip payload (via Xumm)
 app.post('/create-tip-payload', async (req, res) => {
   try {
     const { destination, amount, memo } = req.body;
@@ -58,16 +68,15 @@ app.post('/create-tip-payload', async (req, res) => {
   }
 });
 
-// ✅ OAuth2 login start route (corrected with response_type=code)
+// Xumm OAuth2 login
 app.get('/auth', (req, res) => {
   try {
     const clientId = process.env.VITE_XUMM_API_KEY;
     const redirectUri = encodeURIComponent('http://localhost:5173/');
     const scope = 'Identity';
-    const responseType = 'code'; // Important for proper OAuth2 login
+    const responseType = 'code';
 
     const authUrl = `https://oauth2.xumm.app/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}`;
-
     res.json({ authUrl });
   } catch (error) {
     console.error('Auth route error:', error);
@@ -75,23 +84,48 @@ app.get('/auth', (req, res) => {
   }
 });
 
-// OAuth2 callback route (user returns here after Xumm login)
+// OAuth2 callback
 app.get('/callback', async (req, res) => {
-  const { state, code } = req.query;
+  const { code } = req.query;
 
-  if (!code) {
-    return res.status(400).send('Missing OAuth2 code');
-  }
+  if (!code) return res.status(400).send('Missing OAuth2 code');
 
   try {
     const result = await xumm.oauth2Userdata(code);
     console.log('✅ Logged in user:', result);
-
-    // For now, just redirect back to your app
     res.redirect('http://localhost:5173');
   } catch (error) {
     console.error('OAuth2 callback error:', error);
     res.status(500).send('OAuth2 login failed');
+  }
+});
+
+// ✅ Save tip to MongoDB
+app.post('/api/tip', async (req, res) => {
+  const { sender, recipient, amount, memo, timestamp } = req.body;
+
+  if (!sender || !recipient || !amount || !timestamp) {
+    return res.status(400).json({ error: 'Missing required tip fields' });
+  }
+
+  try {
+    const newTip = new Tip({ sender, recipient, amount, memo, timestamp });
+    await newTip.save();
+    console.log('💾 Tip saved to MongoDB:', newTip);
+    res.status(200).json({ message: 'Tip logged successfully' });
+  } catch (err) {
+    console.error('❌ Error saving tip:', err);
+    res.status(500).json({ error: 'Failed to save tip' });
+  }
+});
+
+// Optional: Get all tips
+app.get('/api/tips', async (req, res) => {
+  try {
+    const tips = await Tip.find().sort({ timestamp: -1 }).limit(50);
+    res.json(tips);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch tips' });
   }
 });
 
