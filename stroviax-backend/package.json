@@ -1,6 +1,8 @@
 {
   "name": "stroviax-backend",
   "version": "1.0.0",
+  "description": "Backend API for StroviaX tipping platform",
+  "author": "OmniSphere Solutions LLC",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -8,9 +10,12 @@
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["xrp", "xumm", "tips", "backend", "stroviax", "express", "mongoose"],
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/stroviax"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
