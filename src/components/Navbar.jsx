@@ -2,18 +2,19 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import DarkModeToggle from './DarkModeToggle';
 import logo from '../assets/stroviax-logo.svg';
-import useXamanAuth from '../hooks/useXamanAuth'; // <-- You forgot this import!
+import useXamanAuth from '../hooks/useXamanAuth'; // Ensure this import is working
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { isConnected, xrpAddress, login, logout, loading } = useXamanAuth(); // <-- Pull your real wallet state
+  const { isConnected, xrpAddress, login, logout, loading } = useXamanAuth();
 
   const handleClick = () => navigate('/');
 
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-md bg-background/70 border-b border-border transition-colors duration-500">
-      {/* Logo */}
       <div className="max-w-6xl mx-auto flex justify-between items-center px-6 py-4">
+        
+        {/* Logo */}
         <div className="flex items-center cursor-pointer" onClick={handleClick}>
           <img src={logo} alt="StroviaX Logo" className="w-10 h-10 mr-2" />
           <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
@@ -21,13 +22,16 @@ export default function Navbar() {
           </span>
         </div>
 
-        {/* Nav Links + Controls */}
+        {/* Navigation Links + Wallet Controls */}
         <div className="flex items-center space-x-6">
           <a href="/" className="text-lg font-medium hover:text-purple-600 dark:text-white dark:hover:text-purple-300 transition-colors">
             Home
           </a>
           <a href="/about" className="text-lg font-medium hover:text-purple-600 dark:text-white dark:hover:text-purple-300 transition-colors">
             About
+          </a>
+          <a href="/admin/tips" className="text-lg font-medium hover:text-purple-600 dark:text-white dark:hover:text-purple-300 transition-colors">
+            Admin Tips
           </a>
 
           {/* Dark Mode Toggle */}

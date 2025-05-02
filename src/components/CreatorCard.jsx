@@ -10,7 +10,7 @@ export default function CreatorCard({ creator }) {
   const [tipHistory, setTipHistory] = useState([]);
 
   const handleTipClick = async () => {
-    // Commented out for testing tipping without wallet connection
+    // Uncomment this if enforcing wallet connection
     // if (!isConnected) {
     //   toast.error('Please connect your wallet first.');
     //   return;
@@ -20,13 +20,19 @@ export default function CreatorCard({ creator }) {
     const toastId = toast.loading('Sending tip...');
 
     try {
-      await submitTip('rMLZzjky2V5XkqMBhGGomakbNXH74k5hfv', drops, `Tip for Sasha Music`);
+      await submitTip(
+        creator.address || 'rMLZzjky2V5XkqMBhGGomakbNXH74k5hfv',
+        drops,
+        `Tip for ${creator.name}`,
+        xrpAddress || 'anonymous'
+      );
+
       toast.success('✅ Tip Sent! Thank you!', { id: toastId });
 
       const timestamp = new Date().toLocaleString();
       setTipHistory(prev => [
         { amount: tipAmount, timestamp },
-        ...prev.slice(0, 4) // Limit to last 5
+        ...prev.slice(0, 4)
       ]);
     } catch (err) {
       toast.error('❌ Tip failed or cancelled.', { id: toastId });
