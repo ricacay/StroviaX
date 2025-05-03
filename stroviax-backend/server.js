@@ -3,31 +3,32 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { XummSdk } from 'xumm-sdk';
-import connectDB from './connectDB.js'; // 👈 Import the DB connection module
-import Tip from './models/tipModel.js'; // import the Tip model
+import connectDB from './connectDB.js';
+import Tip from './models/tipModel.js';
 
-// Load env vars
+// Load environment variables
 dotenv.config();
 
 // Connect to MongoDB
-connectDB(); // 👈 Connect here
+connectDB();
 
 // Initialize Express
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize Xumm
+// Initialize Xumm SDK
 const xumm = new XummSdk(
   process.env.VITE_XUMM_API_KEY,
   process.env.VITE_XUMM_API_SECRET
 );
 
-// Routes
+// Root route
 app.get('/', (req, res) => {
   res.send('✅ StroviaX Backend Server is running');
 });
 
+// Create tip payload for XRP transaction
 app.post('/create-tip-payload', async (req, res) => {
   try {
     const { destination, amount, memo } = req.body;
@@ -41,13 +42,11 @@ app.post('/create-tip-payload', async (req, res) => {
       Destination: destination,
       Amount: amount,
       Memos: memo
-        ? [
-            {
-              Memo: {
-                MemoData: Buffer.from(memo, 'utf8').toString('hex').toUpperCase(),
-              },
+        ? [{
+            Memo: {
+              MemoData: Buffer.from(memo, 'utf8').toString('hex').toUpperCase(),
             },
-          ]
+          }]
         : undefined,
     };
 
@@ -58,11 +57,12 @@ app.post('/create-tip-payload', async (req, res) => {
       next: createdPayload.next.always,
     });
   } catch (error) {
-    console.error('Error creating payload:', error);
+    console.error('❌ Error creating payload:', error);
     res.status(500).json({ error: 'Failed to create payload' });
   }
 });
 
+// OAuth2 authentication route
 app.get('/auth', (req, res) => {
   try {
     const clientId = process.env.VITE_XUMM_API_KEY;
@@ -71,11 +71,12 @@ app.get('/auth', (req, res) => {
 
     res.json({ authUrl });
   } catch (error) {
-    console.error('Auth route error:', error);
+    console.error('❌ Auth route error:', error);
     res.status(500).json({ error: 'Failed to generate auth URL' });
   }
 });
 
+// OAuth2 callback route
 app.get('/callback', async (req, res) => {
   const { code } = req.query;
 
@@ -86,11 +87,12 @@ app.get('/callback', async (req, res) => {
     console.log('✅ Logged in user:', result);
     res.redirect('http://localhost:5173');
   } catch (error) {
-    console.error('OAuth2 callback error:', error);
+    console.error('❌ OAuth2 callback error:', error);
     res.status(500).send('OAuth2 login failed');
   }
 });
 
+// Store tip info in MongoDB
 app.post('/api/tip', async (req, res) => {
   const { sender, recipient, amount, memo, timestamp } = req.body;
 
@@ -109,6 +111,7 @@ app.post('/api/tip', async (req, res) => {
   }
 });
 
+// Fetch tips
 app.get('/api/tips', async (req, res) => {
   try {
     const tips = await Tip.find().sort({ timestamp: -1 }).limit(50);
