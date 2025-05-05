@@ -32,7 +32,7 @@
     "sonner": "^2.0.3",
     "xumm-oauth2-pkce": "^2.8.7",
     "xumm-sdk": "^1.11.2",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.1",
