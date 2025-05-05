@@ -4,17 +4,16 @@ import useXamanAuth from '../hooks/useXamanAuth';
 import { toast } from 'sonner';
 
 export default function CreatorCard({ creator }) {
-  const { isConnected, xrpAddress } = useXamanAuth();
+  const { isConnected, xrpAddress, error } = useXamanAuth(); // ⬅ included error
 
-  const [tipAmount, setTipAmount] = useState('5'); // Default 5 XRP
+  const [tipAmount, setTipAmount] = useState('5');
   const [tipHistory, setTipHistory] = useState([]);
 
   const handleTipClick = async () => {
-    // Uncomment this if enforcing wallet connection
-    // if (!isConnected) {
-    //   toast.error('Please connect your wallet first.');
-    //   return;
-    // }
+    if (!isConnected) {
+      toast.error('🔐 Please connect your wallet before tipping.');
+      return;
+    }
 
     const drops = (parseFloat(tipAmount) * 1000000).toString();
     const toastId = toast.loading('Sending tip...');
@@ -35,7 +34,7 @@ export default function CreatorCard({ creator }) {
         ...prev.slice(0, 4)
       ]);
     } catch (err) {
-      toast.error('❌ Tip failed or cancelled.', { id: toastId });
+      toast.error('❌ Tip failed or was cancelled.', { id: toastId });
       console.error('Tip error:', err);
     }
   };
@@ -85,6 +84,13 @@ export default function CreatorCard({ creator }) {
             ))}
           </ul>
         </div>
+      )}
+
+      {/* Optional Wallet Error Display */}
+      {error && (
+        <p className="text-xs text-red-500 mt-2">
+          ⚠️ {error}
+        </p>
       )}
     </div>
   );

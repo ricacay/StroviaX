@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import creators from '../data/creators';
-import useWalletStore from '../store/walletStore'; // 👈 Zustand wallet hook
+import useXamanAuth from '../hooks/useXamanAuth'; // ⬅ switched to your wallet hook
 
 export default function CreatorProfile() {
   const { id } = useParams();
   const creator = creators.find((c) => c.id === id);
+  const { isConnected, xrpAddress, error } = useXamanAuth(); // ⬅ added error and wallet
   const [isTipping, setIsTipping] = useState(false);
-  const { wallet } = useWalletStore();
 
   if (!creator) {
     return (
@@ -44,7 +44,7 @@ export default function CreatorProfile() {
   };
 
   const handleTip = async () => {
-    if (!wallet) {
+    if (!isConnected || !xrpAddress) {
       toastWithStyle('Please connect your wallet first.', 'error');
       return;
     }
@@ -58,7 +58,9 @@ export default function CreatorProfile() {
     });
 
     try {
+      // Simulate tip action
       await new Promise((resolve) => setTimeout(resolve, 2000));
+
       toastWithStyle('Tip sent successfully!', 'success');
     } catch (error) {
       console.error('Tip error:', error);
@@ -90,9 +92,9 @@ export default function CreatorProfile() {
       <h1 className="text-3xl font-bold text-center">{creator.name}</h1>
       <p className="text-gray-600 mt-2 text-center">{creator.bio}</p>
 
-      {wallet && (
+      {isConnected && (
         <p className="text-sm text-center mt-4 text-gray-500">
-          Tipping from: <span className="font-mono">{wallet}</span>
+          Tipping from: <span className="font-mono">{xrpAddress}</span>
         </p>
       )}
 
@@ -113,6 +115,13 @@ export default function CreatorProfile() {
         >
           Test Toast
         </button>
+
+        {/* Optional Wallet Error Display */}
+        {error && (
+          <p className="text-xs text-red-500 mt-2">
+            ⚠️ {error}
+          </p>
+        )}
       </div>
     </div>
   );

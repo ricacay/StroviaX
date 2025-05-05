@@ -2,30 +2,51 @@
 import { useEffect, useState } from 'react';
 import { XummPkce } from 'xumm-oauth2-pkce';
 
-// 🔄 Dynamic instance (regenerates fresh if needed)
 let xumm = null;
 
 export default function useXamanAuth() {
   const [isConnected, setIsConnected] = useState(false);
   const [xrpAddress, setXrpAddress] = useState('');
-  const [loading, setLoading] = useState(false); // <--- CHANGED default from true ➔ false
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null); // 🔴 New: error state
 
   const initXumm = () => {
     xumm = new XummPkce(import.meta.env.VITE_XUMM_API_KEY);
 
     xumm.on('success', async () => {
-      const state = await xumm.state();
-      if (state?.me?.account) {
-        setIsConnected(true);
-        setXrpAddress(state.me.account);
-        console.log('✅ Wallet connected:', state.me.account);
+      try {
+        const state = await xumm.state();
+        if (state?.me?.account) {
+          setIsConnected(true);
+          setXrpAddress(state.me.account);
+          console.log('✅ Wallet connected:', state.me.account);
+        } else {
+          throw new Error('Wallet connected but no account info.');
+        }
+      } catch (err) {
+        setError('Failed to fetch wallet state.');
+        console.error('❌ Error retrieving wallet state:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false); // <--- STOP loading when successful
+    });
+
+    xumm.on('logout', () => {
+      console.warn('⚠️ Wallet session expired or manually disconnected.');
+      handleDisconnect();
     });
   };
 
+  const handleDisconnect = () => {
+    setIsConnected(false);
+    setXrpAddress('');
+    setLoading(false);
+    setError('Wallet disconnected.');
+    xumm = null;
+  };
+
   useEffect(() => {
-    initXumm(); // Initialize fresh Xumm instance
+    initXumm();
     return () => {
       xumm = null;
     };
@@ -33,37 +54,40 @@ export default function useXamanAuth() {
 
   const login = async () => {
     try {
-      setLoading(true); // <--- Only set loading true when actually logging in
-      initXumm(); // Fresh instance
-      await xumm.logout(); // Always clear session first
-
-      const isDev = import.meta.env.DEV; // Detect dev environment
+      setLoading(true);
+      setError(null);
+      initXumm();
+      await xumm.logout(); // Always clear session
+      const isDev = import.meta.env.DEV;
       await xumm.authorize({ force: isDev }); // Force popup in dev
     } catch (err) {
       if (err?.message?.includes('window closed')) {
         console.warn('🛑 Xumm login window was closed by user.');
+        setError('Login window closed.');
       } else {
         console.error('❌ Login error:', err);
+        setError('Login failed. Please try again.');
       }
     } finally {
-      setLoading(false); // Always clear loading
+      setLoading(false);
     }
   };
 
   const logout = () => {
-    if (xumm) {
-      xumm.logout();
+    try {
+      if (xumm) xumm.logout();
+    } catch (err) {
+      console.warn('⚠️ Error during logout:', err);
     }
-    setIsConnected(false);
-    setXrpAddress('');
-    xumm = null;
-    window.location.reload(); // Refresh page to fully reset
+    handleDisconnect();
+    window.location.reload();
   };
 
   return {
     isConnected,
     xrpAddress,
     loading,
+    error, // 🔴 Expose error for UI feedback
     login,
     logout,
     xumm,
