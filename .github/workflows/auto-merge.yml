@@ -14,16 +14,21 @@ permissions:
 
 jobs:
   auto-merge:
+    name: Auto-approve and merge Dependabot PR
     if: github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Auto-approve Dependabot PR
+      - name: Auto-approve PR
         uses: hmarr/auto-approve-action@v3
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Auto-merge Dependabot PR
+      - name: Auto-merge PR
         uses: pascalgn/automerge-action@v0.15.6
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        with:
+          merge-method: squash
+          merge-labels: ""
+          commit-message: "pull-request-title"
