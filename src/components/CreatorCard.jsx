@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { submitTip } from '../utils/submitTip';
-import useXamanAuth from '../hooks/useXamanAuth';
+import useWallet from '../hooks/useWallet';
 import { toast } from 'sonner';
 
 export default function CreatorCard({ creator }) {
-  const { isConnected, xrpAddress, error } = useXamanAuth();
+  const { isConnected, address, error } = useWallet();
 
   const [tipAmount, setTipAmount] = useState('5');
   const [tipHistory, setTipHistory] = useState([]);
@@ -40,7 +40,7 @@ export default function CreatorCard({ creator }) {
       return;
     }
 
-    if (xrpAddress && creator.address === xrpAddress) {
+    if (address && creator.address === address) {
       toast.error('🙅 You cannot tip yourself.');
       return;
     }
@@ -53,7 +53,7 @@ export default function CreatorCard({ creator }) {
         creator.address,
         drops,
         `Tip for ${creator.name}`,
-        xrpAddress || 'anonymous'
+        address || 'anonymous'
       );
 
       toast.success('✅ Tip Sent! Thank you!', { id: toastId });
