@@ -121,6 +121,53 @@ app.get('/api/tips', async (req, res) => {
   }
 });
 
+// Admin Analytics Route
+app.get('/api/admin/tips', async (req, res) => {
+  try {
+    const allTips = await Tip.find();
+
+    const totalXRP = allTips.reduce((sum, tip) => sum + parseFloat(tip.amount) / 1000000, 0);
+
+    const topTippersMap = {};
+    allTips.forEach((tip) => {
+      if (!topTippersMap[tip.sender]) topTippersMap[tip.sender] = 0;
+      topTippersMap[tip.sender] += parseFloat(tip.amount);
+    });
+    const topTippers = Object.entries(topTippersMap)
+      .map(([sender, total]) => ({
+        sender,
+        totalXRP: (total / 1000000).toFixed(2),
+      }))
+      .sort((a, b) => b.totalXRP - a.totalXRP)
+      .slice(0, 5);
+
+    const topCreatorsMap = {};
+    allTips.forEach((tip) => {
+      if (!topCreatorsMap[tip.recipient]) topCreatorsMap[tip.recipient] = 0;
+      topCreatorsMap[tip.recipient] += parseFloat(tip.amount);
+    });
+    const topCreators = Object.entries(topCreatorsMap)
+      .map(([recipient, total]) => ({
+        recipient,
+        totalXRP: (total / 1000000).toFixed(2),
+      }))
+      .sort((a, b) => b.totalXRP - a.totalXRP)
+      .slice(0, 5);
+
+    const recentTips = await Tip.find().sort({ timestamp: -1 }).limit(10);
+
+    res.json({
+      totalXRP: totalXRP.toFixed(2),
+      recentTips,
+      topTippers,
+      topCreators,
+    });
+  } catch (err) {
+    console.error('❌ Admin tips route error:', err);
+    res.status(500).json({ error: 'Failed to fetch admin tip data' });
+  }
+});
+
 // Start the server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
