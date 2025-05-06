@@ -5,6 +5,19 @@ import { XummPkce } from 'xumm-oauth2-pkce';
 let xumm = null;
 
 export default function useXamanAuth() {
+  // ✅ FULL SSR GUARD — prevents crashes on Vercel
+  if (typeof window === 'undefined') {
+    return {
+      isConnected: false,
+      xrpAddress: '',
+      loading: false,
+      error: 'Wallet not available in SSR',
+      login: () => {},
+      logout: () => {},
+      xumm: null,
+    };
+  }
+
   const location = useLocation();
   const [isConnected, setIsConnected] = useState(false);
   const [xrpAddress, setXrpAddress] = useState('');
@@ -25,7 +38,7 @@ export default function useXamanAuth() {
     try {
       const state = await xumm.state();
 
-      // ✅ FINAL FIX — fully guard against SSR + undefined Xumm
+      // ✅ Safe resolve guard (client only + defined)
       if (
         typeof window !== 'undefined' &&
         xumm &&
@@ -84,7 +97,7 @@ export default function useXamanAuth() {
       setLoading(true);
       setError(null);
       initXumm();
-      await xumm.logout(); // Ensure fresh session
+      await xumm.logout(); // Ensure clean session
       const isDev = import.meta.env.DEV;
       await xumm.authorize({ force: isDev });
     } catch (err) {
@@ -108,7 +121,7 @@ export default function useXamanAuth() {
       console.warn('⚠️ Error during logout:', err);
     }
     handleDisconnect();
-    window.location.reload();
+    window.location.reload(); // Optional: force full reset
   };
 
   return {
