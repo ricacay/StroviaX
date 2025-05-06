@@ -1,26 +1,32 @@
-// useWallet.js
-// Multichain-ready wallet abstraction (currently only XRPL)
-
 import useXamanAuth from './useXamanAuth';
+import useChainStore from '../store/chainStore';
 
 export default function useWallet() {
-  // Default to XRPL for now
-  const chain = 'xrpl'; // eventually dynamic
+  const { chain } = useChainStore();
 
-  // XRPL Wallet (Xaman)
-  const xaman = useXamanAuth();
+  if (chain === 'xrpl') {
+    const xaman = useXamanAuth();
+    return {
+      chain,
+      isConnected: xaman.isConnected,
+      address: xaman.xrpAddress,
+      loading: xaman.loading,
+      error: xaman.error,
+      connect: xaman.login,
+      disconnect: xaman.logout,
+      raw: xaman.xumm,
+    };
+  }
 
-  // Map wallet interface
-  const wallet = {
+  // 🧩 Placeholder for other chain integrations
+  return {
     chain,
-    isConnected: xaman.isConnected,
-    address: xaman.xrpAddress,
-    loading: xaman.loading,
-    error: xaman.error,
-    connect: xaman.login,
-    disconnect: xaman.logout,
-    raw: xaman.xumm, // expose raw provider for low-level use if needed
+    isConnected: false,
+    address: '',
+    loading: false,
+    error: `Chain '${chain}' not yet supported.`,
+    connect: () => alert(`Connect not supported for '${chain}' yet.`),
+    disconnect: () => {},
+    raw: null,
   };
-
-  return wallet;
 }
