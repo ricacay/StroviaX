@@ -5,7 +5,7 @@ import { XummPkce } from 'xumm-oauth2-pkce';
 let xumm = null;
 
 export default function useXamanAuth() {
-  // ✅ FULL SSR GUARD — prevents crashes on Vercel
+  // 🚫 SSR Guard: prevent hook from initializing on server
   if (typeof window === 'undefined') {
     return {
       isConnected: false,
@@ -38,20 +38,21 @@ export default function useXamanAuth() {
     try {
       const state = await xumm.state();
 
-      // ✅ Safe resolve guard (client only + defined)
+      // 🛡️ Safer auth.resolve guard
       if (
         typeof window !== 'undefined' &&
         xumm &&
-        typeof xumm.auth?.resolve === 'function'
+        xumm.auth &&
+        typeof xumm.auth.resolve === 'function'
       ) {
         try {
           const resolved = await xumm.auth.resolve();
           console.log('🔍 Resolved payload:', resolved);
         } catch (resolveErr) {
-          console.warn('⚠️ auth.resolve() failed:', resolveErr);
+          console.warn('⚠️ xumm.auth.resolve threw an error:', resolveErr);
         }
       } else {
-        console.warn('❌ Skipping xumm.auth.resolve — not available or SSR detected');
+        console.warn('🚫 Skipping xumm.auth.resolve — unavailable or not initialized.');
       }
 
       if (state?.me?.account) {
@@ -97,12 +98,12 @@ export default function useXamanAuth() {
       setLoading(true);
       setError(null);
       initXumm();
-      await xumm.logout(); // Ensure clean session
+      await xumm.logout(); // Force clean session
       const isDev = import.meta.env.DEV;
       await xumm.authorize({ force: isDev });
     } catch (err) {
       if (err?.message?.includes('window closed')) {
-        console.warn('🛑 Xumm login window closed by user.');
+        console.warn('🛑 Login window closed by user.');
         setError('Login window was closed.');
       } else {
         console.error('❌ Xumm login failed:', err);
@@ -121,7 +122,7 @@ export default function useXamanAuth() {
       console.warn('⚠️ Error during logout:', err);
     }
     handleDisconnect();
-    window.location.reload(); // Optional: force full reset
+    window.location.reload(); // Optional: force UI reset
   };
 
   return {
