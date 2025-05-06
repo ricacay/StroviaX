@@ -1,5 +1,5 @@
 import React from 'react';
-import useChainStore from '../stores/chainStore';
+import useChainStore from '../store/chainStore';
 
 export default function ChainSelector() {
   const { chain, setChain } = useChainStore();
