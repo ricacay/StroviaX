@@ -13,52 +13,57 @@ export default function useXamanAuth() {
 
   const isWalletRoute = !location.pathname.startsWith('/admin');
 
-  const initXumm = () => {
-    if (!isWalletRoute) return;
-
-    xumm = new XummPkce(import.meta.env.VITE_XUMM_API_KEY);
-
-    xumm.on('success', async () => {
-      try {
-        const state = await xumm.state();
-
-        // ✅ Crash protection for auth.resolve
-        if (xumm.auth && typeof xumm.auth.resolve === 'function') {
-          try {
-            const resolved = await xumm.auth.resolve();
-            console.log('🔍 Resolved payload:', resolved);
-          } catch (resolveErr) {
-            console.warn('⚠️ auth.resolve() failed:', resolveErr);
-          }
-        }
-
-        if (state?.me?.account) {
-          setIsConnected(true);
-          setXrpAddress(state.me.account);
-          console.log('✅ Wallet connected:', state.me.account);
-        } else {
-          throw new Error('Wallet connected but no account info.');
-        }
-      } catch (err) {
-        console.error('❌ Wallet state error:', err);
-        setError('Failed to retrieve wallet state.');
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    xumm.on('logout', () => {
-      console.warn('⚠️ Wallet session expired or manually disconnected.');
-      handleDisconnect();
-    });
-  };
-
+  // Disconnect wallet + reset all state
   const handleDisconnect = () => {
     setIsConnected(false);
     setXrpAddress('');
     setLoading(false);
-    setError('Wallet disconnected.');
+    setError(null);
     xumm = null;
+  };
+
+  // Load wallet state
+  const handleSuccess = async () => {
+    try {
+      const state = await xumm.state();
+
+      if (xumm.auth && typeof xumm.auth.resolve === 'function') {
+        try {
+          const resolved = await xumm.auth.resolve();
+          console.log('🔍 Resolved payload:', resolved);
+        } catch (resolveErr) {
+          console.warn('⚠️ auth.resolve() failed:', resolveErr);
+        }
+      }
+
+      if (state?.me?.account) {
+        setIsConnected(true);
+        setXrpAddress(state.me.account);
+        console.log('✅ Wallet connected:', state.me.account);
+      } else {
+        throw new Error('No account found in wallet state.');
+      }
+    } catch (err) {
+      console.error('❌ Wallet state fetch failed:', err);
+      setError('Failed to load wallet state.');
+      handleDisconnect();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initialize Xumm session
+  const initXumm = () => {
+    if (!isWalletRoute) return;
+
+    if (!xumm) {
+      xumm = new XummPkce(import.meta.env.VITE_XUMM_API_KEY);
+      xumm.on('success', handleSuccess);
+      xumm.on('logout', () => {
+        console.warn('⚠️ Xumm session expired or user logged out.');
+        handleDisconnect();
+      });
+    }
   };
 
   useEffect(() => {
@@ -69,21 +74,22 @@ export default function useXamanAuth() {
     };
   }, [isWalletRoute]);
 
+  // Force login via Xumm popup
   const login = async () => {
     if (!isWalletRoute) return;
     try {
       setLoading(true);
       setError(null);
       initXumm();
-      await xumm.logout(); // Reset session
+      await xumm.logout(); // Ensure fresh session
       const isDev = import.meta.env.DEV;
       await xumm.authorize({ force: isDev });
     } catch (err) {
       if (err?.message?.includes('window closed')) {
-        console.warn('🛑 Xumm login window was closed by user.');
-        setError('Login window closed.');
+        console.warn('🛑 Xumm login window closed by user.');
+        setError('Login window was closed.');
       } else {
-        console.error('❌ Login error:', err);
+        console.error('❌ Xumm login failed:', err);
         setError('Login failed. Please try again.');
       }
     } finally {
@@ -91,6 +97,7 @@ export default function useXamanAuth() {
     }
   };
 
+  // Manual logout
   const logout = () => {
     if (!isWalletRoute) return;
     try {
@@ -99,7 +106,7 @@ export default function useXamanAuth() {
       console.warn('⚠️ Error during logout:', err);
     }
     handleDisconnect();
-    window.location.reload();
+    window.location.reload(); // Optional: reset state across app
   };
 
   return {

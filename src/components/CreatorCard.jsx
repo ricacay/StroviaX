@@ -1,13 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { submitTip } from '../utils/submitTip';
 import useXamanAuth from '../hooks/useXamanAuth';
 import { toast } from 'sonner';
 
 export default function CreatorCard({ creator }) {
-  const { isConnected, xrpAddress, error } = useXamanAuth(); // ⬅ included error
+  const { isConnected, xrpAddress, error } = useXamanAuth();
 
   const [tipAmount, setTipAmount] = useState('5');
   const [tipHistory, setTipHistory] = useState([]);
+
+  const historyKey = `tipHistory-${creator.address}`;
+
+  useEffect(() => {
+    const stored = localStorage.getItem(historyKey);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setTipHistory(parsed);
+      } catch {
+        localStorage.removeItem(historyKey);
+      }
+    }
+  }, [creator.address]);
 
   const handleTipClick = async () => {
     if (!isConnected) {
@@ -15,12 +29,28 @@ export default function CreatorCard({ creator }) {
       return;
     }
 
-    const drops = (parseFloat(tipAmount) * 1000000).toString();
+    const numericAmount = parseFloat(tipAmount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      toast.error('❌ Please enter a valid tip amount greater than 0.');
+      return;
+    }
+
+    if (!creator.address) {
+      toast.error('❌ Creator wallet address not available.');
+      return;
+    }
+
+    if (xrpAddress && creator.address === xrpAddress) {
+      toast.error('🙅 You cannot tip yourself.');
+      return;
+    }
+
+    const drops = (numericAmount * 1_000_000).toString();
     const toastId = toast.loading('Sending tip...');
 
     try {
       await submitTip(
-        creator.address || 'rMLZzjky2V5XkqMBhGGomakbNXH74k5hfv',
+        creator.address,
         drops,
         `Tip for ${creator.name}`,
         xrpAddress || 'anonymous'
@@ -29,14 +59,23 @@ export default function CreatorCard({ creator }) {
       toast.success('✅ Tip Sent! Thank you!', { id: toastId });
 
       const timestamp = new Date().toLocaleString();
-      setTipHistory(prev => [
+      const newHistory = [
         { amount: tipAmount, timestamp },
-        ...prev.slice(0, 4)
-      ]);
+        ...tipHistory.slice(0, 4)
+      ];
+
+      setTipHistory(newHistory);
+      localStorage.setItem(historyKey, JSON.stringify(newHistory));
     } catch (err) {
       toast.error('❌ Tip failed or was cancelled.', { id: toastId });
       console.error('Tip error:', err);
     }
+  };
+
+  const handleClearHistory = () => {
+    localStorage.removeItem(historyKey);
+    setTipHistory([]);
+    toast.success('🧹 Tip history cleared.');
   };
 
   return (
@@ -75,11 +114,19 @@ export default function CreatorCard({ creator }) {
       {/* Tip History */}
       {tipHistory.length > 0 && (
         <div className="mt-2 text-xs text-gray-600">
-          <p className="font-semibold mb-1">Recent Tips:</p>
-          <ul className="list-disc list-inside space-y-1">
+          <div className="flex justify-between items-center">
+            <p className="font-semibold">Recent Tips:</p>
+            <button
+              onClick={handleClearHistory}
+              className="text-red-500 text-xs underline hover:text-red-600"
+            >
+              Clear History
+            </button>
+          </div>
+          <ul className="list-disc list-inside space-y-1 mt-1">
             {tipHistory.map((tip, index) => (
               <li key={index}>
-                {tip.amount} XRP - <span className="text-gray-400">{tip.timestamp}</span>
+                {tip.amount} XRP — <span className="text-gray-400">{tip.timestamp}</span>
               </li>
             ))}
           </ul>
