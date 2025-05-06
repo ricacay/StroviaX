@@ -4,9 +4,11 @@ import { persist } from 'zustand/middleware';
 const useWalletStore = create(
   persist(
     (set) => ({
-      wallet: null,
-      connectWallet: (address) =>
-        set({ wallet: address || 'rTEST_FAKE_XRP123456789' }),
+      wallet: null, // { chain: 'xrpl', address: '...' }
+
+      connectWallet: (address, chain = 'xrpl') =>
+        set({ wallet: { chain, address: address || 'rTEST_FAKE_XRP123456789' } }),
+
       disconnectWallet: () => set({ wallet: null }),
     }),
     {
