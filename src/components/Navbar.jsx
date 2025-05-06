@@ -1,12 +1,13 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import DarkModeToggle from './DarkModeToggle';
+import ChainSelector from './ChainSelector';
 import logo from '../assets/stroviax-logo.svg';
-import useXamanAuth from '../hooks/useXamanAuth';
+import useWallet from '../hooks/useWallet';
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { isConnected, xrpAddress, login, logout, loading, error } = useXamanAuth(); // ⬅ added error
+  const { isConnected, address, connect, disconnect, loading, error } = useWallet();
 
   const handleClick = () => navigate('/');
 
@@ -44,6 +45,9 @@ export default function Navbar() {
               Admin Tips
             </Link>
 
+            {/* Chain Selector */}
+            <ChainSelector />
+
             {/* Dark Mode Toggle */}
             <DarkModeToggle />
 
@@ -51,10 +55,10 @@ export default function Navbar() {
             {isConnected ? (
               <div className="flex items-center space-x-2">
                 <div className="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold">
-                  {xrpAddress.slice(0, 6)}...{xrpAddress.slice(-4)}
+                  {address.slice(0, 6)}...{address.slice(-4)}
                 </div>
                 <button
-                  onClick={logout}
+                  onClick={disconnect}
                   className="bg-red-500 text-white px-3 py-2 rounded hover:opacity-90 transition-all"
                 >
                   Disconnect
@@ -62,7 +66,7 @@ export default function Navbar() {
               </div>
             ) : (
               <button
-                onClick={login}
+                onClick={connect}
                 className="bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white px-4 py-2 rounded hover:opacity-90 flex items-center transition-all"
                 disabled={loading}
               >
