@@ -13,7 +13,6 @@ export default function useXamanAuth() {
 
   const isWalletRoute = !location.pathname.startsWith('/admin');
 
-  // Disconnect wallet + reset all state
   const handleDisconnect = () => {
     setIsConnected(false);
     setXrpAddress('');
@@ -22,18 +21,20 @@ export default function useXamanAuth() {
     xumm = null;
   };
 
-  // Load wallet state
   const handleSuccess = async () => {
     try {
       const state = await xumm.state();
 
-      if (xumm.auth && typeof xumm.auth.resolve === 'function') {
+      // ✅ Safely attempt .resolve() only if available
+      if (xumm?.auth?.resolve && typeof xumm.auth.resolve === 'function') {
         try {
           const resolved = await xumm.auth.resolve();
           console.log('🔍 Resolved payload:', resolved);
         } catch (resolveErr) {
           console.warn('⚠️ auth.resolve() failed:', resolveErr);
         }
+      } else {
+        console.warn('⚠️ xumm.auth.resolve is undefined or not a function');
       }
 
       if (state?.me?.account) {
@@ -52,7 +53,6 @@ export default function useXamanAuth() {
     }
   };
 
-  // Initialize Xumm session
   const initXumm = () => {
     if (!isWalletRoute) return;
 
@@ -74,14 +74,13 @@ export default function useXamanAuth() {
     };
   }, [isWalletRoute]);
 
-  // Force login via Xumm popup
   const login = async () => {
     if (!isWalletRoute) return;
     try {
       setLoading(true);
       setError(null);
       initXumm();
-      await xumm.logout(); // Ensure fresh session
+      await xumm.logout();
       const isDev = import.meta.env.DEV;
       await xumm.authorize({ force: isDev });
     } catch (err) {
@@ -97,7 +96,6 @@ export default function useXamanAuth() {
     }
   };
 
-  // Manual logout
   const logout = () => {
     if (!isWalletRoute) return;
     try {
@@ -106,7 +104,7 @@ export default function useXamanAuth() {
       console.warn('⚠️ Error during logout:', err);
     }
     handleDisconnect();
-    window.location.reload(); // Optional: reset state across app
+    window.location.reload();
   };
 
   return {
