@@ -77,6 +77,16 @@ Create a `.env` file in each directory (`stroviax-backend` and `stroviax-fronten
 
 ---
 
+📚 **Developer Documentation**  
+Everything we've learned about integrating the Xaman SDK, fixing SSR crashes, and building StroviaX is documented in [`/docs`](./docs).
+
+
+## 📚 Developer Docs
+View the full technical documentation for StroviaX:
+👉 [https://ricacay.github.io/stroviax/](https://ricacay.github.io/stroviax/)
+
+---
+
 ## 📝 License
 
 ISC © OmniSphere Solutions LLC
