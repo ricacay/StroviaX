@@ -1,7 +1,6 @@
-import { Outlet, Route, Routes } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Navbar from './components/Navbar';
-import AdminDashboard from './pages/AdminDashboard'; // ✅ NEW import
 
 function App() {
   return (
@@ -21,11 +20,7 @@ function App() {
       />
       <Navbar />
       <main className="px-6 py-8 max-w-6xl mx-auto">
-        <Routes>
-          <Route path="/admin/tips" element={<AdminDashboard />} />
-          {/* Other routes are handled below */}
-          <Route path="*" element={<Outlet />} />
-        </Routes>
+        <Outlet />
       </main>
     </div>
   );
