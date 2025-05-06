@@ -25,8 +25,12 @@ export default function useXamanAuth() {
     try {
       const state = await xumm.state();
 
-      // ✅ Safely attempt .resolve() only if available
-      if (xumm?.auth?.resolve && typeof xumm.auth.resolve === 'function') {
+      // ✅ FINAL FIX — fully guard against SSR + undefined Xumm
+      if (
+        typeof window !== 'undefined' &&
+        xumm &&
+        typeof xumm.auth?.resolve === 'function'
+      ) {
         try {
           const resolved = await xumm.auth.resolve();
           console.log('🔍 Resolved payload:', resolved);
@@ -34,7 +38,7 @@ export default function useXamanAuth() {
           console.warn('⚠️ auth.resolve() failed:', resolveErr);
         }
       } else {
-        console.warn('⚠️ xumm.auth.resolve is undefined or not a function');
+        console.warn('❌ Skipping xumm.auth.resolve — not available or SSR detected');
       }
 
       if (state?.me?.account) {
@@ -80,7 +84,7 @@ export default function useXamanAuth() {
       setLoading(true);
       setError(null);
       initXumm();
-      await xumm.logout();
+      await xumm.logout(); // Ensure fresh session
       const isDev = import.meta.env.DEV;
       await xumm.authorize({ force: isDev });
     } catch (err) {
