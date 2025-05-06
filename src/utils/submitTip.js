@@ -1,3 +1,4 @@
+import { ethers } from 'ethers';
 import useChainStore from '../store/chainStore';
 
 export async function submitTip(destinationAccount, amountInDrops, memo = '', sender = '') {
@@ -6,15 +7,20 @@ export async function submitTip(destinationAccount, amountInDrops, memo = '', se
   try {
     const timestamp = new Date().toISOString();
 
-    // XRPL FLOW
+    // ✅ XRPL Flow
     if (chain === 'xrpl') {
       const response = await fetch('http://localhost:4000/create-tip-payload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ destination: destinationAccount, amount: amountInDrops, memo }),
+        body: JSON.stringify({
+          destination: destinationAccount,
+          amount: amountInDrops,
+          memo,
+        }),
       });
 
       if (!response.ok) throw new Error('Failed to create XRPL tip payload.');
+
       const data = await response.json();
       console.log('✅ XRPL Tip Payload Created:', data);
 
@@ -22,29 +28,38 @@ export async function submitTip(destinationAccount, amountInDrops, memo = '', se
       await fetch('http://localhost:4000/api/tip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender, recipient: destinationAccount, amount: amountInDrops, memo, timestamp, chain }),
+        body: JSON.stringify({
+          sender,
+          recipient: destinationAccount,
+          amount: amountInDrops,
+          memo,
+          timestamp,
+          chain,
+        }),
       });
 
+      // Open Xumm signing tab
       window.open(data.next, '_blank');
       return data.uuid;
     }
 
-    // ETHEREUM FLOW (MetaMask)
+    // ✅ Ethereum Flow
     if (chain === 'ethereum') {
-      if (!window.ethereum) throw new Error('MetaMask not available.');
+      if (typeof window === 'undefined' || !window.ethereum)
+        throw new Error('MetaMask not available in this environment.');
 
-      const amountInEth = (parseFloat(amountInDrops) / 1_000_000).toString(); // Simple 1 XRP = 1 ETH conversion for test UI
+      const amountInEth = (parseFloat(amountInDrops) / 1_000_000).toString();
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+
       const tx = {
         to: destinationAccount,
-        value: window.ethereum.utils
-          ? window.ethereum.utils.parseEther(amountInEth)._hex
-          : '0x' + (parseFloat(amountInEth) * 1e18).toString(16),
+        value: ethers.utils.parseEther(amountInEth)._hex,
+        from: accounts[0],
       };
 
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       const txHash = await window.ethereum.request({
         method: 'eth_sendTransaction',
-        params: [{ ...tx, from: accounts[0] }],
+        params: [tx],
       });
 
       console.log('✅ ETH Tip Sent, TxHash:', txHash);
@@ -53,7 +68,14 @@ export async function submitTip(destinationAccount, amountInDrops, memo = '', se
       await fetch('http://localhost:4000/api/tip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: accounts[0], recipient: destinationAccount, amount: amountInEth, memo, timestamp, chain }),
+        body: JSON.stringify({
+          sender: accounts[0],
+          recipient: destinationAccount,
+          amount: amountInEth,
+          memo,
+          timestamp,
+          chain,
+        }),
       });
 
       return txHash;
