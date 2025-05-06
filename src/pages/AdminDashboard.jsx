@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
+  CartesianGrid, ResponsiveContainer
+} from 'recharts';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -8,6 +11,11 @@ export default function AdminDashboard() {
   const [filter, setFilter] = useState('30');
   const [adminKey, setAdminKey] = useState('');
   const [accessGranted, setAccessGranted] = useState(false);
+
+  const [creatorFilter, setCreatorFilter] = useState('');
+  const [tipperFilter, setTipperFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const handleTokenSubmit = (e) => {
     e.preventDefault();
@@ -60,12 +68,29 @@ export default function AdminDashboard() {
   };
 
   const filteredTips = stats?.recentTips?.filter((tip) => {
-    if (filter === 'all') return true;
-    const days = parseInt(filter);
+    const tipDate = new Date(tip.timestamp);
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    return new Date(tip.timestamp) >= cutoff;
-  });
+    cutoff.setDate(cutoff.getDate() - parseInt(filter));
+
+    if (filter !== 'all' && tipDate < cutoff) return false;
+    if (startDate && tipDate < new Date(startDate)) return false;
+    if (endDate && tipDate > new Date(endDate)) return false;
+    if (creatorFilter && !tip.recipient?.toLowerCase().includes(creatorFilter.toLowerCase())) return false;
+    if (tipperFilter && !tip.sender?.toLowerCase().includes(tipperFilter.toLowerCase())) return false;
+    return true;
+  }) || [];
+
+  const chartData = filteredTips.reduce((acc, tip) => {
+    const dateKey = new Date(tip.timestamp).toISOString().split('T')[0];
+    const existing = acc.find(entry => entry.date === dateKey);
+    const tipXRP = parseFloat(tip.amount) / 1_000_000;
+    if (existing) {
+      existing.total += tipXRP;
+    } else {
+      acc.push({ date: dateKey, total: tipXRP });
+    }
+    return acc;
+  }, []).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   if (!accessGranted) {
     return (
@@ -105,8 +130,39 @@ export default function AdminDashboard() {
         </button>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Filter by Creator"
+          className="p-2 border rounded"
+          value={creatorFilter}
+          onChange={(e) => setCreatorFilter(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="Filter by Tipper"
+          className="p-2 border rounded"
+          value={tipperFilter}
+          onChange={(e) => setTipperFilter(e.target.value)}
+        />
+        <div className="flex gap-2">
+          <input
+            type="date"
+            className="p-2 border rounded"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <input
+            type="date"
+            className="p-2 border rounded"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+      </div>
+
       <div className="mb-6">
-        <label className="mr-2 font-medium">Filter Tips By:</label>
+        <label className="mr-2 font-medium">Quick Filter:</label>
         <select
           className="border px-2 py-1 rounded"
           value={filter}
@@ -132,6 +188,19 @@ export default function AdminDashboard() {
             <Tooltip />
             <Bar dataKey="totalXRP" fill="#a855f7" />
           </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold mb-2">📉 Tips Over Time</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis />
+            <Tooltip />
+            <Line type="monotone" dataKey="total" stroke="#9333ea" strokeWidth={2} />
+          </LineChart>
         </ResponsiveContainer>
       </div>
 
