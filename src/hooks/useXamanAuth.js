@@ -5,7 +5,7 @@ import { XummPkce } from 'xumm-oauth2-pkce';
 let xumm = null;
 
 export default function useXamanAuth() {
-  // 🚫 SSR Guard: prevent hook from initializing on server
+  // Prevent hook execution in SSR
   if (typeof window === 'undefined') {
     return {
       isConnected: false,
@@ -23,6 +23,7 @@ export default function useXamanAuth() {
   const [xrpAddress, setXrpAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [triggerResolve, setTriggerResolve] = useState(false);
 
   const isWalletRoute = !location.pathname.startsWith('/admin');
 
@@ -37,28 +38,11 @@ export default function useXamanAuth() {
   const handleSuccess = async () => {
     try {
       const state = await xumm.state();
-
-      // 🛡️ Safer auth.resolve guard
-      if (
-        typeof window !== 'undefined' &&
-        xumm &&
-        xumm.auth &&
-        typeof xumm.auth.resolve === 'function'
-      ) {
-        try {
-          const resolved = await xumm.auth.resolve();
-          console.log('🔍 Resolved payload:', resolved);
-        } catch (resolveErr) {
-          console.warn('⚠️ xumm.auth.resolve threw an error:', resolveErr);
-        }
-      } else {
-        console.warn('🚫 Skipping xumm.auth.resolve — unavailable or not initialized.');
-      }
-
       if (state?.me?.account) {
         setIsConnected(true);
         setXrpAddress(state.me.account);
         console.log('✅ Wallet connected:', state.me.account);
+        setTriggerResolve(true); // Delay resolve after successful state
       } else {
         throw new Error('No account found in wallet state.');
       }
@@ -70,6 +54,31 @@ export default function useXamanAuth() {
       setLoading(false);
     }
   };
+
+  // ✳️ Wait and retry until xumm.auth.resolve becomes safely available
+  useEffect(() => {
+    let interval;
+    if (triggerResolve && xumm) {
+      interval = setInterval(async () => {
+        try {
+          if (
+            typeof xumm.auth?.resolve === 'function'
+          ) {
+            const resolved = await xumm.auth.resolve();
+            console.log('🔍 Resolved payload (delayed):', resolved);
+            clearInterval(interval);
+            setTriggerResolve(false);
+          }
+        } catch (err) {
+          console.warn('⚠️ Retrying resolve:', err?.message || err);
+        }
+      }, 500); // Retry every 500ms
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [triggerResolve]);
 
   const initXumm = () => {
     if (!isWalletRoute) return;
@@ -122,7 +131,7 @@ export default function useXamanAuth() {
       console.warn('⚠️ Error during logout:', err);
     }
     handleDisconnect();
-    window.location.reload(); // Optional: force UI reset
+    window.location.reload();
   };
 
   return {
