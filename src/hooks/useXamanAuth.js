@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Xumm } from "xumm-sdk";
-import { useAuthStore } from "../store/useAuthStore";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const xumm = new Xumm(import.meta.env.VITE_XUMM_API_KEY);
 
