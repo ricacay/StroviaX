@@ -5,8 +5,8 @@ import useChainStore from '../store/chainStore';
 
 export default function useWallet() {
   const { chain } = useChainStore();
+  const xaman = useXamanAuth();
 
-  const xaman = useXamanAuth(); // always called, even if not used
   const [ethState, setEthState] = useState({
     address: '',
     connected: false,
@@ -15,7 +15,6 @@ export default function useWallet() {
     ethereum: null,
   });
 
-  // Ethereum logic (SSR-safe)
   useEffect(() => {
     if (chain === 'ethereum' && typeof window !== 'undefined' && window.ethereum) {
       setEthState((prev) => ({ ...prev, ethereum: window.ethereum }));
@@ -62,7 +61,6 @@ export default function useWallet() {
     }
   };
 
-  // Return by chain type
   if (chain === 'xrpl') {
     return {
       chain,
@@ -89,7 +87,6 @@ export default function useWallet() {
     };
   }
 
-  // Default fallback
   return {
     chain,
     isConnected: false,
