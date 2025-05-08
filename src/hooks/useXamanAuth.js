@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Xumm } from "xumm-sdk";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthStore } from "../store/useAuthStore"; // ✅ RELATIVE PATH
 
 const xumm = new Xumm(import.meta.env.VITE_XUMM_API_KEY);
 
@@ -18,7 +18,7 @@ export const useXamanAuth = () => {
     logout,
   } = useAuthStore();
 
-  // Initialize XUMM event listeners (client-side only)
+  // Set up XUMM event listeners
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -27,12 +27,12 @@ export const useXamanAuth = () => {
     });
 
     xumm.on("success", () => {
-      console.log("🔐 XUMM login success");
+      console.log("🔐 User logged in via XUMM");
       setAuthenticated(true);
     });
 
     xumm.on("logout", () => {
-      console.log("🚪 XUMM logout triggered");
+      console.log("🚪 User logged out");
       logout();
       setResolved(false);
     });
@@ -46,8 +46,8 @@ export const useXamanAuth = () => {
       try {
         const payload = await xumm.user.account;
         console.log("🟢 Resolved XUMM user:", payload);
-        setXummUser(payload);         // Local state (optional)
-        setAccount(payload);          // Global store (Zustand)
+        setXummUser(payload);
+        setAccount(payload);
         setResolved(true);
       } catch (error) {
         console.warn("⚠️ Failed to resolve XUMM user:", error);
