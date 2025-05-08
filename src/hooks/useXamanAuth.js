@@ -1,7 +1,7 @@
 // src/hooks/useXamanAuth.js
 
 import { useEffect, useState } from "react";
-import { Xumm } from "xumm";
+import { Xumm } from "xumm-sdk";
 import { useAuthStore } from "../store/useAuthStore";
 
 const xumm = new Xumm(import.meta.env.VITE_XUMM_API_KEY);
