@@ -1,6 +1,6 @@
 // useWallet.js (Safe for SSR and React Rules)
 import { useEffect, useState } from 'react';
-import useXamanAuth from './useXamanAuth';
+import { useXamanAuth } from './useXamanAuth'; // ✅ fixed named import
 import useChainStore from '../store/chainStore';
 
 export default function useWallet() {
@@ -52,7 +52,13 @@ export default function useWallet() {
   const disconnect = () => {
     if (chain === 'xrpl') return xaman.logout();
     if (chain === 'ethereum') {
-      setEthState({ address: '', connected: false, loading: false, error: null, ethereum: window.ethereum });
+      setEthState({
+        address: '',
+        connected: false,
+        loading: false,
+        error: null,
+        ethereum: window.ethereum,
+      });
     }
   };
 
