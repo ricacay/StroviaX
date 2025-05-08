@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import creators from '../data/creators';
-import useXamanAuth from '../hooks/useXamanAuth'; // ⬅ switched to your wallet hook
+import { useXamanAuth } from '../hooks/useXamanAuth'; // ⬅ switched to your wallet hook
 
 export default function CreatorProfile() {
   const { id } = useParams();
