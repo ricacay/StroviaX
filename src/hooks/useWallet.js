@@ -1,4 +1,4 @@
-// useWallet.js (Safe for SSR and React Rules)
+// forced push to fix Vercel import issue
 import { useEffect, useState } from 'react';
 import { useXamanAuth } from './useXamanAuth'; // ✅ fixed named import
 import useChainStore from '../store/chainStore';
