@@ -7,11 +7,18 @@ import logo from '../assets/stroviax-logo.svg';
 let WalletControls = () => null;
 
 if (typeof window !== 'undefined') {
-  // Dynamically import inside client-only scope
-  const useWallet = require('../hooks/useWallet').default;
-
   WalletControls = function WalletControlsImpl() {
-    const { isConnected, address, connect, disconnect, loading, error } = useWallet();
+    const [useWalletHook, setWalletHook] = useState(null);
+
+    useEffect(() => {
+      import('../hooks/useWallet').then((mod) => {
+        setWalletHook(() => mod.default);
+      });
+    }, []);
+
+    if (!useWalletHook) return null;
+
+    const { isConnected, address, connect, disconnect, loading, error } = useWalletHook();
 
     return (
       <>
