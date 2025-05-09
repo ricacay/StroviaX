@@ -1,10 +1,11 @@
 // src/hooks/useXamanAuth.js
 
 import { useEffect, useState } from "react";
-import { Xumm } from "xumm-sdk";
-import { useAuthStore } from "../store/useAuthStore"; // ✅ RELATIVE PATH
+import { XummPkce } from "xumm-oauth2-pkce";
+import { useAuthStore } from "../store/useAuthStore";
 
-const xumm = new Xumm(import.meta.env.VITE_XUMM_API_KEY);
+// ✅ Correct for frontend/browser use
+const xumm = new XummPkce(import.meta.env.VITE_XUMM_API_KEY);
 
 export const useXamanAuth = () => {
   const [xummUser, setXummUser] = useState(null);
@@ -18,16 +19,15 @@ export const useXamanAuth = () => {
     logout,
   } = useAuthStore();
 
-  // Set up XUMM event listeners
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     xumm.on("ready", () => {
-      console.log("✅ XUMM SDK ready");
+      console.log("✅ XummPkce ready");
     });
 
     xumm.on("success", () => {
-      console.log("🔐 User logged in via XUMM");
+      console.log("🔐 XUMM OAuth login success");
       setAuthenticated(true);
     });
 
@@ -40,14 +40,13 @@ export const useXamanAuth = () => {
     setLoading(false);
   }, []);
 
-  // Resolve user account after login
   useEffect(() => {
     const resolveUser = async () => {
       try {
-        const payload = await xumm.user.account;
-        console.log("🟢 Resolved XUMM user:", payload);
-        setXummUser(payload);
-        setAccount(payload);
+        const userData = await xumm.user.account;
+        console.log("🟢 Resolved XUMM user:", userData);
+        setXummUser(userData);
+        setAccount(userData);
         setResolved(true);
       } catch (error) {
         console.warn("⚠️ Failed to resolve XUMM user:", error);
@@ -59,19 +58,16 @@ export const useXamanAuth = () => {
     }
   }, [isAuthenticated, resolved]);
 
-  const login = () => {
-    xumm.authorize();
-  };
-
-  const disconnect = () => {
-    xumm.logout();
-  };
+  const login = () => xumm.authorize();
+  const disconnect = () => xumm.logout();
 
   return {
     login,
     disconnect,
-    isAuthenticated,
-    xummUser,
+    isConnected: isAuthenticated,
+    xrpAddress: xummUser,
     loading,
+    error: null,
+    xumm,
   };
 };
