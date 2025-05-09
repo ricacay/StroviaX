@@ -3,8 +3,10 @@ import { Outlet } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Navbar from './components/Navbar';
 
-function App() {
-  return (
+  function App() {
+    console.log("🔥 Forcing rebuild to kill hidden .resolve() bug");
+  
+    return (
     <div className="min-h-screen transition-all duration-700 ease-in-out bg-background text-foreground dark:bg-background-dark dark:text-foreground-dark">
       <Toaster
         richColors
