@@ -1,73 +1,52 @@
-// src/hooks/useXamanAuth.js
-
 import { useEffect, useState } from "react";
 import { XummPkce } from "xumm-oauth2-pkce";
-import { useAuthStore } from "../store/useAuthStore";
 
-// ✅ Correct for frontend/browser use
-const xumm = new XummPkce(import.meta.env.VITE_XUMM_API_KEY);
+// Guarded Xumm instance (only available on client)
+let xumm = null;
+if (typeof window !== "undefined") {
+  xumm = new XummPkce(import.meta.env.VITE_XUMM_API_KEY);
+}
 
-export const useXamanAuth = () => {
+export function useXamanAuth() {
   const [xummUser, setXummUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [resolved, setResolved] = useState(false);
-
-  const {
-    isAuthenticated,
-    setAuthenticated,
-    setAccount,
-    logout,
-  } = useAuthStore();
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!xumm) return;
 
-    xumm.on("ready", () => {
-      console.log("✅ XummPkce ready");
-    });
+    console.log("✅ XummPkce ready");
 
     xumm.on("success", () => {
       console.log("🔐 XUMM OAuth login success");
-      setAuthenticated(true);
     });
 
     xumm.on("logout", () => {
-      console.log("🚪 User logged out");
-      logout();
-      setResolved(false);
+      console.log("🚪 XUMM OAuth logout");
+      setXummUser(null);
     });
 
-    setLoading(false);
+    // Attempt to fetch user data after login
+    xumm.user.account
+      .then((userData) => {
+        console.log("👤 Resolved XUMM user:", userData);
+        setXummUser(userData);
+      })
+      .catch((err) => {
+        console.warn("⚠️ Failed to resolve XUMM user:", err);
+      });
   }, []);
 
-  useEffect(() => {
-    const resolveUser = async () => {
-      try {
-        const userData = await xumm.user.account;
-        console.log("🟢 Resolved XUMM user:", userData);
-        setXummUser(userData);
-        setAccount(userData);
-        setResolved(true);
-      } catch (error) {
-        console.warn("⚠️ Failed to resolve XUMM user:", error);
-      }
-    };
+  const login = () => {
+    if (xumm) xumm.authorize();
+  };
 
-    if (isAuthenticated && !resolved && typeof window !== "undefined") {
-      resolveUser();
-    }
-  }, [isAuthenticated, resolved]);
-
-  const login = () => xumm.authorize();
-  const disconnect = () => xumm.logout();
+  const disconnect = () => {
+    if (xumm) xumm.logout();
+  };
 
   return {
     login,
     disconnect,
-    isConnected: isAuthenticated,
-    xrpAddress: xummUser,
-    loading,
-    error: null,
+    xummUser,
     xumm,
   };
-};
+}
