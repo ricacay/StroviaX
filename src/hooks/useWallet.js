@@ -1,3 +1,4 @@
+// Fix: ensure useWallet.js is added with correct casing
 import { useEffect, useState } from 'react';
 import { useXamanAuth } from './useXamanAuth';
 import useChainStore from '../store/chainStore';
