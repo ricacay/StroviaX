@@ -1,71 +1,44 @@
 import { useEffect, useState } from 'react';
 import { XummPkce } from 'xumm-oauth2-pkce';
 
-let xumm = null;
+const xumm = new XummPkce({
+  clientId: import.meta.env.VITE_XUMM_API_KEY, // using your existing API Key
+  redirectUri: window.location.origin          // e.g., http://localhost:5173
+});
 
-if (typeof window !== 'undefined') {
-  xumm = new XummPkce(import.meta.env.VITE_XUMM_API_KEY);
-}
-
-export default function useXamanAuth() {
-  const [xummUser, setXummUser] = useState(null);
+export function useXamanAuth() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userToken, setUserToken] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const connect = () => {
-    if (!xumm) return;
-    xumm.authorize();
-  };
-
-  const disconnect = () => {
-    if (!xumm) return;
-    xumm.logout();
-    setXummUser(null);
-  };
 
   useEffect(() => {
-    if (!xumm) return;
-
-    console.log('✅ XummPkce ready');
-
-    xumm.on('success', async () => {
+    const login = async () => {
       try {
-        const userData = await xumm.user.account;
-        console.log('🔐 XUMM OAuth login success');
-        setXummUser(userData);
-      } catch (err) {
-        console.warn('⚠️ Failed to resolve XUMM user:', err);
-        setError(err);
+        await xumm.authorize();
+
+        if (xumm.state?.me) {
+          setIsAuthenticated(true);
+          setUserToken(xumm.state.me.sub);
+          setUserData(xumm.state.me);
+        } else {
+          console.warn('User declined or not fully authenticated.');
+        }
+      } catch (error) {
+        console.error('Xumm OAuth2 login failed:', error);
       } finally {
         setLoading(false);
       }
-    });
-
-    xumm.on('logout', () => {
-      setXummUser(null);
-      console.log('👋 XUMM user logged out');
-    });
-
-    // Delayed resolve call
-    const tryResolve = async () => {
-      try {
-        if (typeof xumm?.auth?.resolve === 'function') {
-          await xumm.auth.resolve();
-        }
-      } catch (err) {
-        // Fails silently if not ready yet
-      }
     };
 
-    tryResolve();
+    login();
   }, []);
 
   return {
-    isConnected: !!xummUser,
-    address: xummUser,
-    connect,
-    disconnect,
+    isAuthenticated,
+    userToken,
+    userData,
     loading,
-    error,
+    xumm
   };
 }
