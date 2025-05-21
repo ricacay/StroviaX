@@ -34,7 +34,7 @@
     "recharts": "^2.15.3",
     "sonner": "^2.0.3",
     "xumm-oauth2-pkce": "^2.8.7",
-    "zustand": "^5.0.4"
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.1",
